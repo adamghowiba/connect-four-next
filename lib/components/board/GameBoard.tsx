@@ -1,11 +1,15 @@
 import { MouseEvent } from "react";
 import { useState } from "react";
 import { Dispatch, FC, MouseEventHandler, SetStateAction, useEffect, useRef } from "react";
-import { TurnType } from "../../../pages/board";
+import { TurnType, WinType } from "../../../pages/board";
 import Marker from "../icons/Marker";
 import BoardLayer from "./BoardLayer";
 import BoardPiece from "./BoardPiece";
-import { getCeilingValue, getClosestAvailableSpot, isSlotAlreadyPlaced } from "./helpers/board.helpers";
+import {
+  getCeilingValue,
+  getClosestAvailableSpot,
+  isSlotAlreadyPlaced,
+} from "./helpers/board.helpers";
 import { checkWin } from "./helpers/board-win.helpers";
 
 export interface MoveLocation {
@@ -28,8 +32,8 @@ interface BoardProps {
   turn: TurnType;
   setTurn: Dispatch<SetStateAction<TurnType>>;
   disabled?: boolean;
-  winner: TurnType | "stale" | undefined;
-  setWinner: Dispatch<SetStateAction<TurnType | "stale" | undefined>>;
+  winner: WinType | undefined;
+  setWinner: Dispatch<SetStateAction<WinType | undefined>>;
   onChangeHoverRow?: (row: number) => void;
   onMovePlacement?: (spot: MoveLocation, board: Board) => void;
 }
@@ -113,8 +117,14 @@ const GameBoard: FC<BoardProps> = (props) => {
 
     // Unsued, might not be needed
     // const isFirst = left < gutterWidth / 2 + circleWidth;
-    const locationX = getCeilingValue(Math.floor((left - gutterWidth) / (gapWidth + circleWidth)), 6);
-    const locationY = getCeilingValue(Math.floor((top - gutterHeight) / (gapHeight + circleHeight)), 5);
+    const locationX = getCeilingValue(
+      Math.floor((left - gutterWidth) / (gapWidth + circleWidth)),
+      6
+    );
+    const locationY = getCeilingValue(
+      Math.floor((top - gutterHeight) / (gapHeight + circleHeight)),
+      5
+    );
 
     /* Todod; allow for max & min values */
     return { x: locationX <= -1 ? 0 : locationX, y: locationY <= -1 ? 0 : locationY };

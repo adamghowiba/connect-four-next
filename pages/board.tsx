@@ -9,6 +9,7 @@ import { useAudioStore } from "../lib/components/hooks/use-audio.hook";
 import GlobalSounds from "../lib/components/sound/GlobalSounds";
 
 export type TurnType = "p1" | "p2";
+export type WinType = TurnType | 'stale';
 
 const useDebounce = (callback: () => any, time: number = 60) => {
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -26,7 +27,7 @@ const Board = () => {
   const [currentSlotX, setCurrentSlotX] = useState(0);
   const [currentSlotY, setCurrentSlotY] = useState(0);
   const [board, setBoard] = useState(getEmptyBoard());
-  const [winner, setWinner] = useState<TurnType | "stale">();
+  const [winner, setWinner] = useState<WinType>();
   const audio = useAudioStore();
 
   const boardProps = {
@@ -64,7 +65,7 @@ const Board = () => {
       <GlobalSounds />
       <main>
         <header>
-          <Button size="xs" color="purple">
+          <Button size="xs" color="purple" href="/">
             Menu
           </Button>
           <Button size="xs" color="purple" onClick={handleRestart}>

@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useRef, useState } from "react";
-import { TurnType } from "../../../pages/board";
+import { TurnType, WinType } from "../../../pages/board";
 import Button from "../button/Button";
 import CountdownLayer from "./CountdownLayer";
 
@@ -7,7 +7,7 @@ interface CountdownProps {
   title: string;
   startingSeconds?: number;
   color: "red" | "yellow";
-  winner?: TurnType | "stale";
+  winner?: WinType;
   onRestart?: () => void;
   onCountDownEnd?: () => void;
 }
@@ -18,7 +18,7 @@ const Countdown: FC<CountdownProps> = (props) => {
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
-      setTimer((timer) => timer - 1);
+      setTimer((timer) => timer && timer - 1);
     }, 1000);
 
     return () => clearInterval(intervalRef.current);

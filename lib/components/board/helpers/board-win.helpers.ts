@@ -2,7 +2,7 @@ import { MoveLocation } from "../GameBoard";
 
 const checkRowWin = (board: number[][]) => {
   const playerScoreCount: any = {};
-  let winner: number | undefined = undefined;
+  let winner: number | undefined = NaN;
 
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col < board[row].length; col++) {
@@ -32,7 +32,7 @@ const checkRowWin = (board: number[][]) => {
 /* TODO: finish */
 const checkColumnWin = (board: number[][], x: number) => {
   const playerScoreCount: any = {};
-  let winner: number | undefined = undefined;
+  let winner: number | undefined = NaN;
 
   const column = board.reduce((acc, row) => {
     return (acc = [...acc, row[x]]);

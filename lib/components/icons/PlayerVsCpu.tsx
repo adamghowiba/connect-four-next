@@ -1,5 +1,4 @@
 import React, { FC, useRef, useState } from "react";
-import IconWrap from "./IconWrap";
 
 export interface IconProps {
   width?: number;
