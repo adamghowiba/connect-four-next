@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Countdown from "../lib/components/board/Countdown";
 import GameBoard from "../lib/components/board/GameBoard";
-import { checkWin, getEmptyBoard } from "../lib/components/board/helpers/board.helpers";
+import { getEmptyBoard } from "../lib/components/board/helpers/board.helpers";
 import ScoreCard from "../lib/components/board/ScoreCard";
 import Button from "../lib/components/button/Button";
 import classNames from "classnames";
@@ -46,7 +46,7 @@ const Board = () => {
     setBoard(getEmptyBoard());
     setWinner(undefined);
     setTurn("p1");
-    audio.play("clearBoard");
+    audio.play("clearBoard", { volume: 0.15 });
   };
 
   useEffect(() => {
@@ -57,7 +57,6 @@ const Board = () => {
     if (board.every((row) => row.every((move) => !isNaN(move)))) {
       setWinner("stale");
     }
-
   }, [turn]);
 
   return (
@@ -74,33 +73,38 @@ const Board = () => {
         </header>
 
         <div className="board">
-          <ScoreCard
-            title="Player 1"
-            score={10}
-            icon="player-one"
-            hovering={turn === "p1"}
-            isWinner={winner === "p1"}
-          />
+          <div className="board__score board__score--p1">
+            <ScoreCard
+              title="Player 1"
+              score={10}
+              icon="player-one"
+              hovering={turn === "p1"}
+              isWinner={winner === "p1"}
+            />
+          </div>
 
-          <GameBoard
-            {...boardProps}
-            disabled={!!winner}
-            onMovePlacement={() => {
-              audio.play("move");
-            }}
-            onChangeHoverRow={() => {
-              // Currently unsued little to loud
-              audio.play("click", { volume: 0.2 });
-            }}
-          />
+          <div className="board__board">
+            <GameBoard
+              {...boardProps}
+              disabled={!!winner}
+              onMovePlacement={() => {
+                audio.play("move", { volume: 0.2 });
+              }}
+              onChangeHoverRow={() => {
+                audio.play("click", { volume: 0.2 });
+              }}
+            />
+          </div>
 
-          <ScoreCard
-            title="Player 2"
-            score={10}
-            icon="player-two"
-            hovering={turn === "p2"}
-            isWinner={winner === "p2"}
-          />
+          <div className="board__score board__score-p2">
+            <ScoreCard
+              title="Player 2"
+              score={10}
+              icon="player-two"
+              hovering={turn === "p2"}
+              isWinner={winner === "p2"}
+            />
+          </div>
 
           <div className="board__countdown">
             <Countdown
@@ -124,8 +128,46 @@ const Board = () => {
           height: 100%;
           display: flex;
           flex-direction: column;
-          padding: 4rem 1rem;
-          gap: 1rem;
+          padding: 2rem 1rem;
+        }
+
+        header {
+          display: flex;
+          max-width: 600px;
+          width: 100%;
+          margin: 0 auto;
+          margin-bottom: 5rem;
+          justify-content: space-between;
+        }
+
+        .board {
+          position: relative;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          grid-template-areas: "score-1 board score-2";
+          gap: 4rem;
+          align-items: center;
+          justify-content: center;
+
+          &__board {
+            grid-area: board;
+          }
+
+          &__score-p1 {
+            grid-area: score-1;
+          }
+
+          &__score-p2 {
+            grid-area: score-2;
+          }
+
+          &__countdown {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, 65%);
+            bottom: 0;
+            z-index: 20;
+          }
         }
 
         footer {
@@ -147,25 +189,33 @@ const Board = () => {
             background-color: var(--color-yellow);
           }
         }
-        header {
-          display: flex;
-          max-width: 600px;
-          width: 100%;
-          margin: 0 auto;
-          justify-content: space-between;
-        }
-        .board {
-          position: relative;
-          display: flex;
-          gap: 4rem;
-          align-items: center;
-          justify-content: center;
 
-          &__countdown {
-            position: absolute;
-            left: 50%;
-            transform: translate(-50%, 65%);
-            bottom: 0;
+        @media only screen and (max-width: 1030px) {
+          .board {
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas:
+              "score-1 score-2"
+              "board board";
+
+            &__countdown {
+              transform: translate(-50%, 80%);
+            }
+          }
+
+          header {
+            margin-bottom: 3rem;
+          }
+        }
+
+        @media only screen and (max-width: 768px) {
+          main {
+            padding: 3rem 1rem;
+          }
+        }
+
+        @media only screen and (max-width: 425px) {
+          .board {
+            column-gap: 2.5rem;
           }
         }
       `}</style>

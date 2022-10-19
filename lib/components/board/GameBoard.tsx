@@ -1,9 +1,12 @@
+import { MouseEvent } from "react";
+import { useState } from "react";
 import { Dispatch, FC, MouseEventHandler, SetStateAction, useEffect, useRef } from "react";
 import { TurnType } from "../../../pages/board";
 import Marker from "../icons/Marker";
 import BoardLayer from "./BoardLayer";
 import BoardPiece from "./BoardPiece";
-import { checkWin } from "./helpers/board.helpers";
+import { getCeilingValue, getClosestAvailableSpot, isSlotAlreadyPlaced } from "./helpers/board.helpers";
+import { checkWin } from "./helpers/board-win.helpers";
 
 export interface MoveLocation {
   x: number;
@@ -25,27 +28,20 @@ interface BoardProps {
   turn: TurnType;
   setTurn: Dispatch<SetStateAction<TurnType>>;
   disabled?: boolean;
-  winner: TurnType;
-  setWinner: Dispatch<SetStateAction<TurnType>>;
+  winner: TurnType | "stale" | undefined;
+  setWinner: Dispatch<SetStateAction<TurnType | "stale" | undefined>>;
   onChangeHoverRow?: (row: number) => void;
   onMovePlacement?: (spot: MoveLocation, board: Board) => void;
 }
 
 type TurnColor = "red" | "yellow";
 
+/**
+ * @description Location - {x, y} positon on the board
+ * @description Position - {left, right} CSS offset on the board
+ */
 const GameBoard: FC<BoardProps> = (props) => {
-  const {
-    currentSlotX,
-    currentSlotY,
-    setCurrentSlotX,
-    setCurrentSlotY,
-    turn,
-    setTurn,
-    setBoard,
-    board,
-    setWinner,
-  } = props;
-
+  const [screenSize, setScreenSize] = useState<"large" | "small">("large");
   const markerRef = useRef<HTMLDivElement | null>(null);
   const playerMap: Record<TurnType, { id: number; color: TurnColor }> = {
     p1: {
@@ -58,100 +54,99 @@ const GameBoard: FC<BoardProps> = (props) => {
     },
   };
 
-  let gutterSize = 16;
-  let circleWidth = 71;
-  let gapWidth = 17;
-  let gapHeight = 20;
-  let circleHeight = 68;
+  useEffect(() => {
+    const largeMediaQuery = window.matchMedia(SCREEN_SIZES.large);
+
+    const largeMQEventHandler = (event: MediaQueryListEvent) => {
+      if (event.matches) return setScreenSize("large");
+      setScreenSize("small");
+    };
+
+    largeMediaQuery.addEventListener("change", largeMQEventHandler);
+
+    return () => {
+      largeMediaQuery.removeEventListener("change", largeMQEventHandler);
+    };
+  });
+
+  const {
+    currentSlotX,
+    currentSlotY,
+    setCurrentSlotX,
+    setCurrentSlotY,
+    turn,
+    setTurn,
+    setBoard,
+    board,
+    setWinner,
+  } = props;
+
+  const SCREEN_SIZES = {
+    large: "(min-width: 768px)",
+  };
+
+  const SIZING = {
+    large: {
+      gutterHeight: 16,
+      gapHeight: 20,
+      circleHeight: 68,
+
+      gutterWidth: 16,
+      circleWidth: 71,
+      gapWidth: 17,
+    },
+    small: {
+      circleHeight: 38,
+      gutterHeight: 8,
+      gapHeight: 9,
+
+      gapWidth: 9,
+      circleWidth: 37.5,
+      gutterWidth: 7,
+    },
+  };
 
   /* Refactor to use correct values */
-  const getSlot = (offset: number, max: number) => {
-    let gapWidth = 20;
-    let circleSize = 68;
+  const getLocationFromPosition = ({ top, left }: MovePosition): MoveLocation => {
+    const { gutterWidth, gapWidth, circleWidth, gutterHeight, gapHeight, circleHeight } =
+      SIZING[screenSize];
 
-    let isFirstSlot = offset < circleSize + gapWidth;
-    let spaceBetweenSlots = 68 - (isFirstSlot ? gapWidth : 23.5);
-    let slot = Math.floor(offset / spaceBetweenSlots / 2) + 1;
-    let maxedOutSlot = (slot > max ? max : slot) || 1;
+    // Unsued, might not be needed
+    // const isFirst = left < gutterWidth / 2 + circleWidth;
+    const locationX = getCeilingValue(Math.floor((left - gutterWidth) / (gapWidth + circleWidth)), 6);
+    const locationY = getCeilingValue(Math.floor((top - gutterHeight) / (gapHeight + circleHeight)), 5);
 
-    return maxedOutSlot;
+    /* Todod; allow for max & min values */
+    return { x: locationX <= -1 ? 0 : locationX, y: locationY <= -1 ? 0 : locationY };
   };
 
-  /* Calculates the current slot being hovered over */
-  const handleMouseMove: MouseEventHandler = (event) => {
-    if (props.winner) return;
-    const target = event.target as HTMLDivElement;
-    const offsetLeft = event.clientX - target.getBoundingClientRect().left;
-    const offsetTop = event.clientY - target.getBoundingClientRect().top;
-    let slotX = getSlot(offsetLeft, 7);
-
-    if (slotX !== currentSlotX && props.onChangeHoverRow) {
-      props.onChangeHoverRow(slotX);
-    }
-
-    setCurrentSlotX(slotX);
-    setCurrentSlotY(getSlot(offsetTop, 6));
-  };
-
-  /**
+  /**1
    * Gets a board pieces CSS postion reltive to the top left of the board.
    * @param location - the location to get the postion of
    */
-  const getBoardSlotPosition = (location: MoveLocation): MovePosition => {
-    // const locationTop = (circleSize + gapWidth) * location.y + circleSize / 2;
+  const getPositionFromLocation = (location: MoveLocation): MovePosition => {
+    const { gapWidth, circleWidth, circleHeight, gapHeight, gutterHeight } = SIZING[screenSize];
+
     const locationLeft = (circleWidth + gapWidth) * location.x + circleWidth / 4;
-    const locationTop = (circleHeight + gapHeight) * location.y + circleHeight / 4;
+    const locationTop = (circleHeight + gapHeight) * location.y + gutterHeight;
 
     return { left: locationLeft, top: locationTop };
   };
 
-  /**
-   * Finds the closest available spot to place a board piece.
-   * @param location -the location to find the nearest from
-   * @returns {MoveLocation} the location of the nearest spot
-   */
-  const getClosestAvailableSpot = ({ x, y }: MoveLocation) => {
-    const column = board.reduce((acc, row) => {
-      return (acc = [...acc, row[x]]);
-    }, []);
-
-    let location: MoveLocation = { x, y: column.length };
-
-    for (let index = 0; index < column.length; index++) {
-      const element = column[index];
-
-      if (!isNaN(element)) return (location = { x, y: index });
-    }
-
-    return location;
-  };
-
-  /**
-   * Checks if a slot is already filled or empty
-   *
-   * @param location - to check if it's already filled
-   * @returns
-   */
-  const isSlotAlreadyPlaced = ({ x, y }: MoveLocation) => {
-    return !isNaN(board[y][x]);
-  };
-
   const placeMove = (player: TurnType, spot: MoveLocation) => {
     if (props.disabled) return;
-    if (isSlotAlreadyPlaced({ x: spot.x - 1, y: spot.y - 1 })) return;
+    if (isSlotAlreadyPlaced(board, { x: spot.x, y: spot.y })) return;
 
-    const { x, y } = getClosestAvailableSpot({ x: spot.x - 1, y: spot.y });
+    const { x, y } = getClosestAvailableSpot(board, { x: spot.x, y: spot.y });
 
     setBoard((board) => {
       board[y - 1][x] = player === "p1" ? 0 : 1;
-      board = board;
-
       return board;
     });
 
     props.onMovePlacement && props.onMovePlacement(spot, board);
-    const win = checkWin(board, spot);
 
+    const win = checkWin(board, spot);
     if (win !== undefined && !isNaN(win)) return setWinner(win === 0 ? "p1" : "p2");
     setTurn(turn === "p1" ? "p2" : "p1");
   };
@@ -164,8 +159,8 @@ const GameBoard: FC<BoardProps> = (props) => {
         let piece = board[rowIndex][colIndex];
 
         if (!isNaN(piece)) {
-          let position = getBoardSlotPosition({ x: colIndex, y: rowIndex });
-          /* Refactor to use map */
+          let position = getPositionFromLocation({ x: colIndex, y: rowIndex });
+          /* TODO: Refactor to use map */
           let color: "yellow" | "red" = piece === 0 ? "red" : "yellow";
           boardPieces.push({ color: color, left: position.left, top: position.top });
         }
@@ -175,20 +170,53 @@ const GameBoard: FC<BoardProps> = (props) => {
     return boardPieces;
   };
 
-  const moveMarkerToSlot = (slot: number) => {
-    const target = markerRef.current;
-    if (!target) return;
+  const handleBoardClick = (event: MouseEvent) => {
+    if (!event.target) return;
+    const target = event.target as HTMLElement;
 
-    const offsetLeft = (circleWidth + gapWidth) * slot + circleWidth / 2;
+    const offsetLeft = event.clientX - target.getBoundingClientRect().left;
+    const offsetTop = event.clientY - target.getBoundingClientRect().top;
+
+    const position = getLocationFromPosition({ top: offsetTop, left: offsetLeft });
+    console.log(position);
+
+    placeMove(turn, position);
+  };
+
+  /* Calculates the current slot being hovered over */
+  const handleMouseMove: MouseEventHandler = (event) => {
+    if (props.winner) return;
+    const target = event.target as HTMLDivElement;
+    const offsetLeft = event.clientX - target.getBoundingClientRect().left;
+    const offsetTop = event.clientY - target.getBoundingClientRect().top;
+
+    let { x, y } = getLocationFromPosition({ left: offsetLeft, top: offsetTop });
+
+    if (x !== currentSlotX && props.onChangeHoverRow) {
+      props.onChangeHoverRow(x);
+    }
+
+    setCurrentSlotX(x);
+    setCurrentSlotY(y);
+  };
+
+  /**
+   * @param slot
+   * @returns
+   */
+  const moveMarkerToSlot = (xLocation: number) => {
+    if (!markerRef.current) return;
+    const target = markerRef.current;
+
+    const { circleWidth, gapWidth } = SIZING[screenSize];
+    const offsetLeft = (circleWidth + gapWidth) * xLocation + circleWidth / 2;
 
     target.style.left = `${offsetLeft - 2}px`;
   };
 
-  const handleBoardClick = () => placeMove(turn, { x: currentSlotX, y: currentSlotY });
-
-  /* Move marker to X slot postion  */
+  /* Move marker to X hovered postion  */
   useEffect(() => {
-    moveMarkerToSlot(currentSlotX - 1);
+    moveMarkerToSlot(currentSlotX);
   }, [currentSlotX]);
 
   /* Start market in first slot */
@@ -198,10 +226,10 @@ const GameBoard: FC<BoardProps> = (props) => {
 
   return (
     <div className="wrapper">
-      <div className="slots">
+      {/* <div className="slots">
         <h3>{currentSlotX}</h3>
         <h3>{currentSlotY}</h3>
-      </div>
+      </div> */}
 
       <div className="board" onMouseMove={handleMouseMove} onClick={handleBoardClick}>
         <div className="marker" ref={markerRef}>
@@ -210,15 +238,18 @@ const GameBoard: FC<BoardProps> = (props) => {
 
         {getBoardPeices().map((piece, i) => (
           <div className="board__piece" style={{ left: piece.left, top: piece.top }} key={i}>
-            <BoardPiece color={piece.color} />
+            <BoardPiece color={piece.color} size={screenSize} />
           </div>
         ))}
 
+        {/* <div className="line line--x"></div>
+        <div className="line line--y"></div> */}
+
         <div className="board__layer board__layer-black">
-          <BoardLayer color="black" />
+          <BoardLayer color="black" size={screenSize} />
         </div>
         <div className="board__layer board__layer-white">
-          <BoardLayer color="white" />
+          <BoardLayer color="white" size={screenSize} />
         </div>
       </div>
 
@@ -240,6 +271,25 @@ const GameBoard: FC<BoardProps> = (props) => {
           transition: left 0.1s ease-in;
         }
 
+        .line {
+          position: absolute;
+          top: 0;
+          background-color: red;
+          z-index: 100;
+
+          &--x {
+            top: 1px;
+            width: 100%;
+            height: 1px;
+          }
+
+          &--y {
+            left: 5px;
+            height: 100%;
+            width: 1px;
+          }
+        }
+
         .slots {
           display: flex;
           gap: 1rem;
@@ -248,20 +298,23 @@ const GameBoard: FC<BoardProps> = (props) => {
         .board {
           position: relative;
           display: flex;
-          height: 597px;
-          width: 632px;
           justify-content: center;
+          background-color: var(--color-purple);
+          border-radius: 38px;
 
           &__layer-white {
-            position: absolute;
+            z-index: 20;
+            position: relative;
           }
 
           &__layer-black {
+            z-index: 10;
             top: 8px;
             position: absolute;
           }
 
           &__piece {
+            z-index: 15;
             position: absolute;
           }
         }

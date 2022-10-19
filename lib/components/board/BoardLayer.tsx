@@ -1,10 +1,14 @@
 import React, { FC } from "react";
+import BoardLayerSmall from "./BoardLayer-Small";
 
 interface BoardLayerProps {
   color: "white" | "black";
+  size?: "small" | 'large'
 }
 
 const BoardLayer: FC<BoardLayerProps> = (props) => {
+  if (props.size === 'small') return <BoardLayerSmall color={props.color} />
+
   return (
     <>
       {props.color === "black" && (
@@ -69,6 +73,7 @@ const BoardLayer: FC<BoardLayerProps> = (props) => {
 
 BoardLayer.defaultProps = {
   color: "white",
+  size: "large"
 };
 
 export default BoardLayer;

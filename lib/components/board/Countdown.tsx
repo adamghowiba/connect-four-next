@@ -132,6 +132,12 @@ const Countdown: FC<CountdownProps> = (props) => {
             text-transform: uppercase;
           }
         }
+
+        @media only screen and (max-width: 768px) {
+          .countdown {
+            
+          }
+        }
       `}</style>
     </>
   );

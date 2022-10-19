@@ -21,7 +21,7 @@ const ScoreCard: FC<ScoreCardProps> = (props) => {
   };
 
   useEffect(() => {
-    if (props.isWinner) party.confetti(cardRef.current, {count: 60});
+    if (props.isWinner && cardRef.current) party.confetti(cardRef.current, { count: 60 });
   }, [props.isWinner]);
 
   return (
@@ -29,7 +29,7 @@ const ScoreCard: FC<ScoreCardProps> = (props) => {
       <div className={classNames("card", props.hovering && "hovering")} ref={cardRef}>
         <div className="icon">{React.createElement(PLAYER_ICONS[props.icon])}</div>
         <h3 className="card__title">{props.title}</h3>
-        <h1>{props.score}</h1>
+        <h1 className="card__score">{props.score}</h1>
       </div>
 
       <style jsx>{`
@@ -74,6 +74,37 @@ const ScoreCard: FC<ScoreCardProps> = (props) => {
           position: absolute;
           top: 0;
           transform: translateY(-40%);
+        }
+
+        @media only screen and (max-width: 768px) {
+          .card {
+            padding: 10px 37px;
+            flex-direction: row;
+            justify-content: space-between;
+
+            &__score {
+              font-size: 32px;
+              line-height: 1.5em;
+            }
+
+            &__title {
+              font-size: 16px;
+              line-height: 1em;
+            }
+          }
+
+          .icon {
+            left: 0;
+            top: 50%;
+            transform: translate(-50%, -50%);
+          }
+        }
+
+        @media only screen and (max-width: 425px) {
+          .card {
+            padding: 10px 37px;
+            flex-direction: column;
+          }
         }
       `}</style>
     </>
