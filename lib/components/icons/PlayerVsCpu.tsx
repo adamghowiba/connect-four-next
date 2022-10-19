@@ -1,0 +1,98 @@
+import React, { FC, useRef, useState } from "react";
+import IconWrap from "./IconWrap";
+
+export interface IconProps {
+  width?: number;
+  height?: number;
+  color?: "white" | "black";
+  backgroundColor?: 'yellow' | "red";
+}
+
+const PlayerVsCpu: FC<IconProps> = (props) => {
+  return (
+    <>
+      <div className="wrapper">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 82 46"
+          version="1.1"
+          xmlns="http://www.w3.org/2000/svg"
+          xmlnsXlink="http://www.w3.org/1999/xlink"
+        >
+          <title>player-vs-cpu</title>
+          <g id="Designs" stroke="none" strokeWidth="1" fill="none" fillRule="evenodd">
+            <g id="player-vs-cpu">
+              <circle id="Oval-Copy-20" fill={props.color} cx="59" cy="23" r="23"></circle>
+              <g id="Group-2" transform="translate(39.000000, 3.000000)">
+                <circle id="Oval-Copy-11" fill={`var(--color-${props.backgroundColor})`} cx="20" cy="20" r="20"></circle>
+                <g
+                  id="Group-8"
+                  transform="translate(10.000000, 12.500000)"
+                  stroke={props.color}
+                  strokeWidth="3"
+                >
+                  <g id="Group-10">
+                    <line
+                      x1="12.0833333"
+                      y1="0.416666667"
+                      x2="17.0833333"
+                      y2="0.416666667"
+                      id="Path-Copy"
+                    ></line>
+                    <line
+                      x1="2.91666667"
+                      y1="0.416666667"
+                      x2="7.91666667"
+                      y2="0.416666667"
+                      id="Path-Copy-2"
+                    ></line>
+                    <line x1="0" y1="6.25" x2="20" y2="6.25" id="Path-2"></line>
+                  </g>
+                </g>
+              </g>
+              <circle id="Oval-Copy-19" fill={props.color} cx="23" cy="23" r="23"></circle>
+              <g id="Group" transform="translate(3.000000, 3.000000)">
+                <circle id="Oval-Copy-11" fill={`var(--color-${props.backgroundColor})`} cx="20" cy="20" r="20"></circle>
+                <g
+                  id="Group-8"
+                  transform="translate(10.000000, 11.666667)"
+                  stroke={props.color}
+                  strokeWidth="3"
+                >
+                  <path
+                    d="M5,22.2916667 C10.5228475,22.2916667 15,17.8145142 15,12.2916667 C15,6.76881917 10.5228475,2.29166667 5,2.29166667"
+                    id="Oval-Copy-11"
+                    transform="translate(10.000000, 12.291667) rotate(90.000000) translate(-10.000000, -12.291667) "
+                  ></path>
+                  <g id="Group-7" transform="translate(5.625000, 0.000000)">
+                    <line x1="0.416666667" y1="0" x2="0.416666667" y2="4.98700291" id="Path"></line>
+                    <line x1="8.75" y1="0" x2="8.75" y2="4.98700291" id="Path-Copy"></line>
+                  </g>
+                </g>
+              </g>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <style jsx>
+        {`
+          .wrapper {
+            width: ${props.width}px;
+            height: ${props.height}px;
+          }
+        `}
+      </style>
+    </>
+  );
+};
+
+PlayerVsCpu.defaultProps = {
+  color: "white",
+  width: 82,
+  height: 46,
+  backgroundColor: 'red'
+};
+
+export default PlayerVsCpu;
